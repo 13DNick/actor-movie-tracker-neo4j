@@ -1,23 +1,17 @@
 package ca.yorku.eecs.controller;
 
 import java.io.IOException;
-import java.io.OutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.URI;
-import java.net.URLDecoder;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
-import java.util.LinkedHashMap;
-import java.util.Map;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 
 import ca.yorku.eecs.Utils;
+import ca.yorku.eecs.entity.ActedIn;
 import ca.yorku.eecs.service.Service;
 
 public class RequestHandler implements HttpHandler{
@@ -60,24 +54,20 @@ public class RequestHandler implements HttpHandler{
         pathList.remove(0);
         //System.out.println("List: " + pathList);
         
-        //process query
-        //String query = uri.getQuery();
-        //System.out.println("Query: " + query);
-        //Map<String, String> queryMap = new HashMap<>(splitQuery(query));
+        JSONObject deserialized;
+    	String movieId;
+    	String actorId;
         
         //delegate call based on path
         if(pathList.get(2).equals("getActor")){
         	
-            JSONObject deserialized;
-        	String id;
-    		
         	try {
     			//convert requestBody to JSON string and extract actorId
     			deserialized = new JSONObject(requestBody);
-    			id = deserialized.getString("actorId");
+    			actorId = deserialized.getString("actorId");
     			
     			//delegate call to service
-    			response = this.service.getActor(id);
+    			response = this.service.getActor(actorId);
     			
     			//process and return response
     			sendResponse(request, response); 
@@ -89,16 +79,13 @@ public class RequestHandler implements HttpHandler{
         	
         } else if(pathList.get(2).equals("getMovie")){
         	
-            JSONObject deserialized;
-        	String id;
-    		
         	try {
     			//convert requestBody to JSON string and extract movieId
     			deserialized = new JSONObject(requestBody);
-    			id = deserialized.getString("movieId");
+    			movieId = deserialized.getString("movieId");
     			
     			//delegate call to service
-    			response = this.service.getMovie(id);
+    			response = this.service.getMovie(movieId);
     			
     			//process and return response
     			sendResponse(request, response); 
@@ -107,6 +94,42 @@ public class RequestHandler implements HttpHandler{
     			//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
     		}
+        	
+        } else if(pathList.get(2).equals("hasRelationship")) {
+        	
+        	try {
+        		//convert requestBody to JSON string
+        		//extract movieId and actorId
+    			deserialized = new JSONObject(requestBody);
+    			movieId = deserialized.getString("movieId");
+    			actorId = deserialized.getString("actorId");
+    			
+    			//delegate call to service
+    			//change to response if sending JSON string from hasRelationship
+    			String result = this.service.hasRelationship(movieId, actorId);
+    			
+    			//return 404 if actor or movie not in db
+    			if(result.equals("not found")) {
+    				Utils.sendString(request, "404 Not Found\n", 404);
+    			}
+    			
+    			//return 500 Server Error if crash in hasRelationship()
+    			if(result.equals("-1")) {
+    				Utils.sendString(request, "500 Internal Server Error\n", 500);
+    			}
+    			
+    			//convert to json string
+    			ActedIn hasRelationshipResult = new ActedIn(result, actorId, movieId);
+    			response = new JSONObject(hasRelationshipResult).toString();
+    			
+    			//send response
+    			Utils.sendString(request, response, 200);
+        	} catch(Exception e) {
+        		//improperly formatted JSON - throw 400 bad request
+    			Utils.sendString(request, "400 Bad Request\n", 400);
+        	}
+			
+        } else if(pathList.get(2).equals("doesActorExist")){
         	
         } else {
         	//invalid path - throw 400 bad request
