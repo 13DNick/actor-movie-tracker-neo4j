@@ -5,6 +5,7 @@ import java.net.URI;
 import java.util.ArrayList;
 import java.util.Arrays;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 
 import com.sun.net.httpserver.HttpExchange;
@@ -78,14 +79,9 @@ public class RequestHandler implements HttpHandler{
     			response = this.service.addActor(actorId, name);
     			
     			//send appropriate response
-    			if(response.equals("200")) {
-    				Utils.sendString(request, "", 200);
-    			} else if(response.equals("-1")) {
-    				Utils.sendString(request, "", 500);
-    			} else if(response.equals("400")) {
-    				Utils.sendString(request, "", 400);
-    			}			
-    		} catch (Exception e) {
+    			this.sendPutResponse(request, response);	
+    			
+    		} catch (JSONException e) {
     			//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
     		}	
@@ -100,19 +96,29 @@ public class RequestHandler implements HttpHandler{
     			response = this.service.addMovie(movieId, name);
     			
     			//send appropriate response
-    			if(response.equals("200")) {
-    				Utils.sendString(request, "", 200);
-    			} else if(response.equals("-1")) {
-    				Utils.sendString(request, "", 500);
-    			} else if(response.equals("400")) {
-    				Utils.sendString(request, "", 400);
-    			}			
-    		} catch (Exception e) {
+    			this.sendPutResponse(request, response);
+    			
+    		} catch (JSONException e) {
     			//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
     		}
         } else if(pathList.get(2).equals("addRelationship")) {
-        	
+        	try {
+        		//extract values from request body
+    			deserialized = new JSONObject(requestBody);
+    			movieId = deserialized.getString("movieId");
+    			actorId = deserialized.getString("actorId");
+    			
+    			//delegate call to service
+    			response = this.service.addRelationship(movieId, actorId);
+        		
+    			//send appropriate response
+    			this.sendPutResponse(request, response);
+    			
+        	} catch(JSONException e) {
+        		//improperly formatted JSON - throw 400 bad request
+    			Utils.sendString(request, "400 Bad Request\n", 400);
+        	}
         } else {
         	//invalid path - throw 400 bad request
         	Utils.sendString(request, "400 Bad Request\n", 400);
@@ -150,9 +156,9 @@ public class RequestHandler implements HttpHandler{
     			response = this.service.getActor(actorId);
     			
     			//process and return response
-    			sendResponse(request, response); 
+    			sendGetResponse(request, response); 
     			
-    		} catch (Exception e) {
+    		} catch (JSONException e) {
     			//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
     		}
@@ -168,9 +174,9 @@ public class RequestHandler implements HttpHandler{
     			response = this.service.getMovie(movieId);
     			
     			//process and return response
-    			sendResponse(request, response); 
+    			sendGetResponse(request, response); 
     				
-    		} catch (Exception e) {
+    		} catch (JSONException e) {
     			//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
     		}
@@ -204,7 +210,7 @@ public class RequestHandler implements HttpHandler{
     			
     			//send response
     			Utils.sendString(request, response, 200);
-        	} catch(Exception e) {
+        	} catch(JSONException e) {
         		//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
         	}
@@ -218,8 +224,22 @@ public class RequestHandler implements HttpHandler{
     }
 	
 	//helper method
+	//process and return response for all PUT requests
+	private void sendPutResponse(HttpExchange request, String response) throws IOException{
+		if(response.equals("200")) {
+			Utils.sendString(request, "", 200);
+		} else if(response.equals("-1")) {
+			Utils.sendString(request, "", 500);
+		} else if(response.equals("400")) {
+			Utils.sendString(request, "", 400);
+		} else if(response.equals("404")) {
+			Utils.sendString(request, "", 404);
+		}
+	}
+	
+	//helper method
 	//process and return response for getActor and getMovie requests
-	private void sendResponse(HttpExchange request, String response) throws Exception {
+	private void sendGetResponse(HttpExchange request, String response) throws IOException {
 		if(response == null) {
 			//id not found - throw 404 not found
 			Utils.sendString(request, "404 Not Found\n", 404);

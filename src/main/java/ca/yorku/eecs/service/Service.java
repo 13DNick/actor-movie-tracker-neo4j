@@ -45,6 +45,7 @@ public class Service {
 			
 			//write to db
 			session.writeTransaction(tx2 -> tx2.run("CREATE (a: actor {id: $actorId, Name: $name})", parameters("actorId", actorId, "name", name)));
+			session.close();
 			return "200";	
 		} catch(Exception e) {
 			//signal handler that error occurred
@@ -66,7 +67,35 @@ public class Service {
 			
 			//write to db
 			session.writeTransaction(tx2 -> tx2.run("CREATE (m: movie {id: $movieId, Name: $name})", parameters("movieId", movieId, "name", name)));
+			session.close();
 			return "200";	
+		} catch(Exception e) {
+			//signal handler that error occurred
+			return "-1";
+		}
+	}
+	
+	//add relationship
+	public String addRelationship(String movieId, String actorId) {
+		
+		//check if relationship already exists
+		if(this.hasRelationship(movieId, actorId).equals("true")){
+			//signal to throw 400
+			return "400";
+		} else if(this.hasRelationship(movieId, actorId).equals("not found")) {
+			//signal to throw 404
+			return "404";
+		}
+		
+		//relationship doesn't exist - add it
+		try(Session session = driver.session()){
+			
+			//write to db
+			StatementResult result = session.writeTransaction(tx -> tx.run("MATCH (a: actor), (m: movie) WHERE a.id=$actorId AND m.id=$movieId" 
+					+ " CREATE (a)-[r:ACTED_IN]->(m) RETURN type(r)", parameters("actorId", actorId, "movieId", movieId)));
+			session.close();
+			return "200";	
+			
 		} catch(Exception e) {
 			//signal handler that error occurred
 			return "-1";
@@ -127,7 +156,7 @@ public class Service {
 					result = "true";
 				}
 			}	
-			
+			session.close();
 			return result;
 		} catch(Exception e) {
 			//signal handler that error occured
@@ -233,7 +262,6 @@ public class Service {
 			//return empty list - relationships don't exist
 			return movies;
 		} catch(Exception e) {
-			e.printStackTrace();
 			return movies;
 		}
 	}
@@ -263,7 +291,6 @@ public class Service {
 			//return empty list - relationships don't exist
 			return actors;		
 		} catch(Exception e) {
-			e.printStackTrace();
 			return actors;
 		}
 	}
@@ -274,12 +301,5 @@ public class Service {
 			return true;
 		}
 		return false;
-	}
-	
-	
-	
-	public void close() {
-		driver.close();
-	}
-	
+	}	
 }
