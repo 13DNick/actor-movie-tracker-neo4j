@@ -3,8 +3,10 @@ package ca.yorku.eecs.service;
 import static org.neo4j.driver.v1.Values.parameters;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
+import org.json.JSONException;
 import org.json.JSONObject;
 import org.neo4j.driver.v1.AuthTokens;
 import org.neo4j.driver.v1.Config;
@@ -14,9 +16,12 @@ import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.v1.types.Node;
+import org.neo4j.driver.v1.types.Path;
 
-import ca.yorku.eecs.Utils;
 import ca.yorku.eecs.entity.Actor;
+import ca.yorku.eecs.entity.BaconNumber;
+import ca.yorku.eecs.entity.BaconPath;
 import ca.yorku.eecs.entity.Movie;
 
 public class Service {
@@ -29,6 +34,113 @@ public class Service {
 		uriDb = "bolt://localhost:7687";
 		Config config = Config.builder().withoutEncryption().build();
 		driver = GraphDatabase.driver(uriDb, AuthTokens.basic("neo4j","123456"), config);
+	}
+	
+	//compute bacon number
+	public String computeBaconNumber(String actorId) {
+		BaconNumber bn;
+		
+		//if actorId == nm0000102 aka this is Kevin Bacon
+		//return bacon number 0
+		if(actorId.equals("nm0000102")) {
+			bn = new BaconNumber(0);
+			JSONObject bnObj = new JSONObject(bn);
+			return bnObj.toString();
+		}
+		
+		
+		try(Session session = driver.session()){
+			
+			Path path = this.getShortestPath(actorId, session);
+			
+			//actorId does not exist or path not found
+			if(path == null) {
+				return "404";
+			}
+			
+			//count movie nodes to get bacon number
+			int baconNumber = 0;
+			for(Node node: path.nodes()) {
+				if(node.hasLabel("movie")) {
+					baconNumber++;
+				}
+			}
+			
+			//process bacon number into JSON string
+			bn = new BaconNumber(baconNumber);
+			JSONObject bnObj = new JSONObject(bn);
+				
+			session.close();
+			return bnObj.toString();
+		} catch(Exception e) {
+			e.printStackTrace();
+			return "-1";
+		}
+	}
+	
+	public String computeBaconPath(String actorId) throws JSONException {
+		List<String> baconPath = new ArrayList<>();
+		
+			//if actorId == nm0000102 aka this is Kevin Bacon
+			//return path consisting of just his actorId
+			if(actorId.equals("nm0000102")) {
+				baconPath.add("nm0000102");
+				BaconPath bp = new BaconPath(baconPath);
+				JSONObject bnObj = new JSONObject(bp.toJsonString());
+				return bnObj.toString();
+			}
+			
+			try(Session session = driver.session()){
+				
+				//compute path
+				Path path = this.getShortestPath(actorId, session);
+				
+				//actorId does not exist or path not found
+				if(path == null) {
+					return "404";
+				}
+				
+				//visit each node and add id to baconPath list
+				for(Node node: path.nodes()) {
+					baconPath.add(node.get("id").toString());
+				}
+				
+				//order from actor given to Kevin Bacon
+				Collections.reverse(baconPath);
+				
+				//process bacon path into JSON string
+				BaconPath bp = new BaconPath(baconPath);
+				JSONObject bnObj = new JSONObject(bp.toJsonString());
+					
+				session.close();
+				return bnObj.toString();
+			} catch(Exception e) {
+				e.printStackTrace();
+				return "-1";
+			}
+	}
+	
+	public Path getShortestPath(String actorId, Session session) throws Exception{
+		session = driver.session();
+		Transaction tx = session.beginTransaction();
+		
+		//throw 404 if actorId does not exist
+		StatementResult result = tx.run("MATCH (a: actor WHERE a.id=$actorId) RETURN a", parameters("actorId", actorId));
+		if(!doesExist(result)) {
+			return null;
+		}
+		
+		result = tx.run("MATCH path=shortestPath((b:actor {id:'nm0000102'})-[:ACTED_IN*]-(a:actor {id:$actorId}))" + 
+				" RETURN path", parameters("actorId", actorId));
+		
+		//path not found - throw 404
+		if(!result.hasNext()) {
+			return null;
+		}
+		
+		Record record = result.next();
+		Path path = record.get(0).asPath();
+		return path;				 
 	}
 	
 	//add actor

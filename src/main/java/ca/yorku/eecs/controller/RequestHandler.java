@@ -191,7 +191,6 @@ public class RequestHandler implements HttpHandler{
     			actorId = deserialized.getString("actorId");
     			
     			//delegate call to service
-    			//change to response if sending JSON string from hasRelationship
     			String result = this.service.hasRelationship(movieId, actorId);
     			
     			//return 404 if actor or movie not in db
@@ -215,8 +214,58 @@ public class RequestHandler implements HttpHandler{
     			Utils.sendString(request, "400 Bad Request\n", 400);
         	}
 			
-        } else if(pathList.get(2).equals("doesActorExist")){
-        	
+        } else if(pathList.get(2).equals("computeBaconNumber")){
+        	try {
+        		
+        		//convert requestBody to JSON string
+    			deserialized = new JSONObject(requestBody);
+    			actorId = deserialized.getString("actorId");
+        		
+    			//delegate call to service
+    			String result = this.service.computeBaconNumber(actorId);
+    			
+    			//return 404 if actor or movie not in db
+    			if(result.equals("404")) {
+    				Utils.sendString(request, "404 Not Found\n", 404);
+    			} else if(result.equals("-1")) {
+    				//return 500 Server Error if crash in computeBaconPath()
+    				Utils.sendString(request, "500 Internal Server Error\n", 500);
+    			} else {
+        			//send response
+    				response = result;
+        			Utils.sendString(request, response, 200);
+    			}
+    			
+        	} catch(JSONException e) {
+        		//improperly formatted JSON - throw 400 bad request
+    			Utils.sendString(request, "400 Bad Request\n", 400);
+        	}
+        } else if(pathList.get(2).equals("computeBaconPath")){
+        	try {
+        		
+        		//convert requestBody to JSON string
+    			deserialized = new JSONObject(requestBody);
+    			actorId = deserialized.getString("actorId");
+        		
+    			//delegate call to service
+    			String result = this.service.computeBaconPath(actorId);
+    			
+    			//return 404 if actor or movie not in db
+    			if(result.equals("404")) {
+    				Utils.sendString(request, "404 Not Found\n", 404);
+    			} else if(result.equals("-1")) {
+    				//return 500 Server Error if crash in computeBaconPath()
+    				Utils.sendString(request, "500 Internal Server Error\n", 500);
+    			} else {
+        			//send response
+    				response = result;
+        			Utils.sendString(request, response, 200);
+    			}
+    			
+        	} catch(JSONException e) {
+        		//improperly formatted JSON - throw 400 bad request
+    			Utils.sendString(request, "400 Bad Request\n", 400);
+        	}
         } else {
         	//invalid path - throw 400 bad request
         	Utils.sendString(request, "400 Bad Request\n", 400);
