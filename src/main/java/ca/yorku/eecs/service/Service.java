@@ -31,6 +31,48 @@ public class Service {
 		driver = GraphDatabase.driver(uriDb, AuthTokens.basic("neo4j","123456"), config);
 	}
 	
+	//add actor
+	public String addActor(String actorId, String name) {
+		try(Session session = driver.session()){
+			Transaction tx = session.beginTransaction();
+			
+			//throw 400 if actorId already exists
+			StatementResult result = tx.run("MATCH (a: actor WHERE a.id=$actorId) RETURN a", parameters("actorId", actorId));
+			if(doesExist(result)) {
+				return "400";
+			}
+			tx.close();
+			
+			//write to db
+			session.writeTransaction(tx2 -> tx2.run("CREATE (a: actor {id: $actorId, Name: $name})", parameters("actorId", actorId, "name", name)));
+			return "200";	
+		} catch(Exception e) {
+			//signal handler that error occurred
+			return "-1";
+		}
+	}
+	
+	//add movie
+	public String addMovie(String movieId, String name) {
+		try(Session session = driver.session()){
+			Transaction tx = session.beginTransaction();
+			
+			//throw 400 if movieId already exists
+			StatementResult result = tx.run("MATCH (m: movie WHERE m.id=$movieId) RETURN m", parameters("movieId", movieId));
+			if(doesExist(result)) {
+				return "400";
+			}
+			tx.close();
+			
+			//write to db
+			session.writeTransaction(tx2 -> tx2.run("CREATE (m: movie {id: $movieId, Name: $name})", parameters("movieId", movieId, "name", name)));
+			return "200";	
+		} catch(Exception e) {
+			//signal handler that error occurred
+			return "-1";
+		}
+	}
+	
 	//return "true" if relationship found or "false" if not found
 	//return "not found" if actor or movie not in db
 	public String hasRelationship(String movieId, String actorId) {

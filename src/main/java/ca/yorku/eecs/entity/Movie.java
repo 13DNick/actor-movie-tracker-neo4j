@@ -68,7 +68,7 @@ public class Movie {
 		result += "\", ";	
 		
 		result += "\"";
-		result += "Name";
+		result += "name";
 		result += "\": ";	
 				
 		result += "\"";

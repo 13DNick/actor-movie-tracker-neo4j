@@ -68,7 +68,7 @@ public class Actor {
 		result += "\", ";	
 		
 		result += "\"";
-		result += "Name";
+		result += "name";
 		result += "\": ";	
 				
 		result += "\"";
