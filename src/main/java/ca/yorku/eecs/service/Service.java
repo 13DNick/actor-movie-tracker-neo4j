@@ -16,10 +16,14 @@ import org.neo4j.driver.v1.Record;
 import org.neo4j.driver.v1.Session;
 import org.neo4j.driver.v1.StatementResult;
 import org.neo4j.driver.v1.Transaction;
+import org.neo4j.driver.v1.Value;
 import org.neo4j.driver.v1.types.Node;
 import org.neo4j.driver.v1.types.Path;
 
+import ca.yorku.eecs.Utils;
 import ca.yorku.eecs.entity.Actor;
+import ca.yorku.eecs.entity.AllActorsWithAverageMovieRating;
+import ca.yorku.eecs.entity.AllMovieRatings;
 import ca.yorku.eecs.entity.BaconNumber;
 import ca.yorku.eecs.entity.BaconPath;
 import ca.yorku.eecs.entity.Movie;
@@ -34,6 +38,197 @@ public class Service {
 		uriDb = "bolt://localhost:7687";
 		Config config = Config.builder().withoutEncryption().build();
 		driver = GraphDatabase.driver(uriDb, AuthTokens.basic("neo4j","123456"), config);
+	}
+	
+	
+	//return a list of all actors in the database 
+	//with the average rating of all the movies they have acted in
+	//ordered from highest to lowest average rating
+	public String getActorsByAverageMovieRatings() {
+		try (Session session = driver.session()){
+						
+			//begin transaction and run query to get all actors in DB
+			Transaction tx = session.beginTransaction();
+			StatementResult result = tx.run("MATCH (a: actor) RETURN a");
+			
+			String f = "";
+			
+			//return JSON string of List of movies if result exists
+			if(doesExist(result)) {
+				List<Actor> actorsWithAverageRating = new ArrayList<>();
+				while(result.hasNext()) {
+					//populate POJO with fetched data
+					Record record = result.next();
+					Value v = record.get(0);
+					Actor a = new Actor();
+					a.setId(v.get("id").asString());
+					a.setName(v.get("Name").asString());
+					
+					//get list of all movies actor has acted in
+					List<String> temp = this.getMovies(a.getId());
+					
+					int count = 0;
+					double sum = 0;
+					double average = 0;
+					
+					//for each movie actor has acted in
+					//get movie rating - if valid include in average
+					for(String movieId: temp) {
+						StatementResult moviesActedIn = tx.run("MATCH (m: movie WHERE m.id=$movieId) RETURN m", parameters("movieId", movieId));
+						
+						//fetch movie rating
+						Record r = moviesActedIn.next();
+						Value v2 = r.get(0);
+						double rating = v2.get("rating").asDouble();
+						
+						//check if rating is valid
+						if(rating >= 0.0 && rating <= 5.0) {
+							count++;
+							sum += rating;
+						}	
+					}
+					
+					//all movies checked compute average
+					if(count != 0) {
+						average = sum / count;
+					} else {
+						average = 0.0;
+					}
+						
+					a.setAverageRating(Utils.trimToTwoDecimals(average));
+					actorsWithAverageRating.add(a);
+				}
+				
+				
+				//no movies with valid rating - nothing to return
+				if(actorsWithAverageRating.isEmpty()) {
+					return "404";
+				}
+				
+				//convert POJO to JSON string
+				AllActorsWithAverageMovieRating tempObj = new AllActorsWithAverageMovieRating(actorsWithAverageRating);
+				tempObj.sortDesc();
+				JSONObject jsonAllActorsWithAverageMovieRating = new JSONObject(tempObj.toJsonString());
+				f = jsonAllActorsWithAverageMovieRating.toString();
+			} else {
+				//no movies exist
+				f = "404";
+			}
+				
+			session.close();
+			return f;
+		} catch (Exception e) {
+			//signal request handler error occurred
+			e.printStackTrace();
+			return "-1";
+		}
+	}
+	
+	//return a list of all movies in the database
+	//with a valid rating within the specified range
+	//ordered from highest to lowest rating
+	public String getMoviesWithRatingsInRange(int range) {
+		try (Session session = driver.session()){
+			
+			//begin transaction and run query
+			Transaction tx = session.beginTransaction();
+			StatementResult result = tx.run("MATCH (m: movie) RETURN m ORDER BY m.rating DESC");
+			
+			String f = "";
+			
+			//return JSON string of List of movies if result exists
+			if(doesExist(result)) {
+				List<Movie> moviesWithRatings = new ArrayList<>();
+				while(result.hasNext()) {
+					//populate POJO with fetched data
+					Record record = result.next();
+					Value v = record.get(0);
+					Movie m = new Movie();
+					m.setId(v.get("id").asString());
+					m.setName(v.get("Name").asString());
+					m.setRating(v.get("rating").asDouble());
+					
+					//only add to result if rating is valid
+					if(m.getRating() >= 0.0 && m.getRating() <= 5.0) {
+						//only add to result if rating is within the specified range
+						if(Utils.withinRange(range, m.getRating())) {
+							moviesWithRatings.add(m);
+						}
+					}
+				}
+				
+				//no movies with valid rating within valid range - nothing to return
+				if(moviesWithRatings.isEmpty()) {
+					return "404";
+				}
+				
+				//convert POJO to JSON string
+				AllMovieRatings allMovieRatings = new AllMovieRatings(moviesWithRatings);
+				JSONObject jsonMoviesWithRatings = new JSONObject(allMovieRatings.toJsonString());
+				f = jsonMoviesWithRatings.toString();
+			} else {
+				//no movies exist
+				f = "404";
+			}
+				
+			session.close();
+			return f;
+		} catch (Exception e) {
+			//signal request handler error occurred
+			return "-1";
+		}	
+	}
+	
+	//return a list of all movies in the database 
+	//ordered from highest to lowest rating
+	//excluding movies with rating set to -1.0
+	public String getMoviesWithRatings() {
+		try (Session session = driver.session()){
+			
+			//begin transaction and run query
+			Transaction tx = session.beginTransaction();
+			StatementResult result = tx.run("MATCH (m: movie) RETURN m ORDER BY m.rating DESC");
+			
+			String f = "";
+			
+			//return JSON string of List of movies if result exists
+			if(doesExist(result)) {
+				List<Movie> moviesWithRatings = new ArrayList<>();
+				while(result.hasNext()) {
+					//populate POJO with fetched data
+					Record record = result.next();
+					Value v = record.get(0);
+					Movie m = new Movie();
+					m.setId(v.get("id").asString());
+					m.setName(v.get("Name").asString());
+					m.setRating(v.get("rating").asDouble());
+					
+					//only add to result if rating is valid
+					if(m.getRating() >= 0.0 && m.getRating() <= 5.0) {
+						moviesWithRatings.add(m);
+					}
+				}
+				
+				//no movies with valid rating - nothing to return
+				if(moviesWithRatings.isEmpty()) {
+					return "404";
+				}
+				
+				//convert POJO to JSON string
+				AllMovieRatings allMovieRatings = new AllMovieRatings(moviesWithRatings);
+				JSONObject jsonMoviesWithRatings = new JSONObject(allMovieRatings.toJsonString());
+				f = jsonMoviesWithRatings.toString();
+			} else {
+				//no movies exist
+				f = "404";
+			}
+				
+			session.close();
+			return f;
+		} catch (Exception e) {
+			//signal request handler error occurred
+			return "-1";
+		}
 	}
 	
 	//compute bacon number
@@ -78,6 +273,7 @@ public class Service {
 		}
 	}
 	
+	
 	public String computeBaconPath(String actorId) throws JSONException {
 		List<String> baconPath = new ArrayList<>();
 		
@@ -119,6 +315,7 @@ public class Service {
 				return "-1";
 			}
 	}
+	
 	
 	public Path getShortestPath(String actorId, Session session) throws Exception{
 		session = driver.session();
@@ -166,7 +363,7 @@ public class Service {
 	}
 	
 	//add movie
-	public String addMovie(String movieId, String name) {
+	public String addMovie(String movieId, String name, double rating) {
 		try(Session session = driver.session()){
 			Transaction tx = session.beginTransaction();
 			
@@ -178,7 +375,7 @@ public class Service {
 			tx.close();
 			
 			//write to db
-			session.writeTransaction(tx2 -> tx2.run("CREATE (m: movie {id: $movieId, Name: $name})", parameters("movieId", movieId, "name", name)));
+			session.writeTransaction(tx2 -> tx2.run("CREATE (m: movie {id: $movieId, Name: $name, rating: $rating})", parameters("movieId", movieId, "name", name, "rating", rating)));
 			session.close();
 			return "200";	
 		} catch(Exception e) {
@@ -349,6 +546,7 @@ public class Service {
 		}
 	}
 	
+	//helper method
 	//get all movies the existing actor has acted in
 	public ArrayList<String> getMovies(String actorId) {
 		
@@ -377,7 +575,8 @@ public class Service {
 			return movies;
 		}
 	}
-		
+	
+	//helper method
 	//get all actors that have acted in the existing movie
 	public ArrayList<String> getActors(String movieId) {
 		
@@ -406,9 +605,10 @@ public class Service {
 			return actors;
 		}
 	}
-		
-	//helper method to check if a given actor/movie exists
-	public boolean doesExist(StatementResult result) {
+	
+	//helper method
+	//check if a given actor/movie exists
+	private boolean doesExist(StatementResult result) {
 		if(result.hasNext()) {
 			return true;
 		}

@@ -8,6 +8,7 @@ public class Movie {
 	private String id;
 	private String name;
 	private List<String> actors;
+	private double rating;
 	
 	public Movie() {
 		
@@ -48,42 +49,83 @@ public class Movie {
 	public void setActors(List<String> actors) {
 		this.actors = actors;
 	}
+	
+	public double getRating() {
+		return this.rating;
+	}
+	
+	public void setRating(double rating) {
+		this.rating = rating;
+	}
 
 	@Override
 	public String toString() {
-		return "Movie [id=" + id + ", name=" + name + ", actors=" + actors + "]";
+		if(this.getActors() != null) {
+			return "Movie [id=" + id + ", name=" + name + ", actors=" + actors + ", rating=" + rating + "]";
+		}
+		return "Movie [id=" + id + ", name=" + name + ", rating=" + rating + "]";
 	}
 
 	public String toJsonString() {
 		String result = "";
 		
-		result += "{";
-		
-		result += "\"";
-		result += "movieId";
-		result += "\": ";	
-				
-		result += "\"";
-		result += this.id;
-		result += "\", ";	
-		
-		result += "\"";
-		result += "name";
-		result += "\": ";	
-				
-		result += "\"";
-		result += this.name;
-		result += "\", ";	
-		
-		result += "\"";
-		result += "actors";
-		result += "\": ";	
-				
-		result += "";
-		result += this.actors;
-		result += "";	
-		
-		result += "}";
+		if(this.getActors() != null) {
+			result += "{";
+			
+			result += "\"";
+			result += "movieId";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.id;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "name";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.name;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "actors";
+			result += "\": ";	
+					
+			result += "";
+			result += this.actors;
+			result += "";	
+			
+			result += "}";
+		} else {
+			result += "{";
+			
+			result += "\"";
+			result += "movieId";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.id;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "name";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.name;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "rating";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.rating;
+			result += "\"";	
+			
+			result += "}";
+		}
 		
 		return result;
 	}

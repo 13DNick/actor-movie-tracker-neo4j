@@ -48,4 +48,43 @@ public class Utils {
         }
         return query_pairs;
     }
+	
+	public static boolean withinRange(int range, double rating) {
+		if(range == 0) {
+			if(rating >= 0 && rating <= 0.99) {
+				return true;
+			}
+			return false;
+		} else if(range == 1) {
+			if(rating >= 1.0 && rating <= 1.99) {
+				return true;
+			}
+			return false;
+		} else if(range == 2) {
+			if(rating >= 2.0 && rating <= 2.99) {
+				return true;
+			}
+			return false;
+		} else if(range == 3) {
+			if(rating >= 3.0 && rating <= 3.99) {
+				return true;
+			}
+			return false;
+		} else if(range == 4) {
+			if(rating >= 4.0 && rating <= 4.99) {
+				return true;
+			}
+			return false;
+		} else {
+			if(rating == 5.0) {
+				return true;
+			}
+			return false;
+		}
+	}
+	
+	public static double trimToTwoDecimals(double rating) {
+		String s = String.format("%.2f", rating);
+		return Double.parseDouble(s);
+	}
 }

@@ -13,7 +13,6 @@ import com.sun.net.httpserver.HttpHandler;
 
 import ca.yorku.eecs.Utils;
 import ca.yorku.eecs.entity.ActedIn;
-import ca.yorku.eecs.entity.Actor;
 import ca.yorku.eecs.service.Service;
 
 public class RequestHandler implements HttpHandler{
@@ -32,10 +31,8 @@ public class RequestHandler implements HttpHandler{
 		try {
             if (request.getRequestMethod().equals("GET")) {
                 handleGet(request);
-                System.out.println("get");
             } else if(request.getRequestMethod().equals("PUT")){
             	handlePut(request);
-            	System.out.println("put");
             } else {
             	Utils.sendString(request, "Unimplemented method\n", 501);
             }
@@ -65,7 +62,7 @@ public class RequestHandler implements HttpHandler{
     	String movieId;
     	String actorId;
         String name;
-        
+        double rating;
     	
         //delegate call based on path
         if(pathList.get(2).equals("addActor")){
@@ -92,8 +89,24 @@ public class RequestHandler implements HttpHandler{
     			movieId = deserialized.getString("movieId");
     			name = deserialized.getString("name");
     			
+    			//check if rating is passed in request body
+    			try{
+    				rating = deserialized.getDouble("rating");
+    				rating = Utils.trimToTwoDecimals(rating);
+    				
+    				if(rating < 0.0 || rating > 5.0) {
+    					//invalid rating passed - set it to negative to ignore
+    					rating = -1.0;
+    				}
+    			} catch(JSONException e) {
+    				//if no rating is passed - set it to negative
+    				//movies with negative rating will be ignored 
+    				//when running methods working on ratings
+    				rating = -1.0;
+    			}
+    			
     			//delegate call to service
-    			response = this.service.addMovie(movieId, name);
+    			response = this.service.addMovie(movieId, name, rating);
     			
     			//send appropriate response
     			this.sendPutResponse(request, response);
@@ -193,7 +206,7 @@ public class RequestHandler implements HttpHandler{
     			//delegate call to service
     			String result = this.service.hasRelationship(movieId, actorId);
     			
-    			//return 404 if actor or movie not in db
+    			//return 404 if actor or movie not in DB
     			if(result.equals("not found")) {
     				Utils.sendString(request, "404 Not Found\n", 404);
     			}
@@ -203,7 +216,7 @@ public class RequestHandler implements HttpHandler{
     				Utils.sendString(request, "500 Internal Server Error\n", 500);
     			}
     			
-    			//convert to json string
+    			//convert to JSON string
     			ActedIn hasRelationshipResult = new ActedIn(result, actorId, movieId);
     			response = new JSONObject(hasRelationshipResult).toString();
     			
@@ -266,6 +279,80 @@ public class RequestHandler implements HttpHandler{
         		//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);
         	}
+        } else if(pathList.get(2).equals("ratings")){
+        	//endpoint: /api/v1/ratings
+        	if(pathList.size() == 3) {
+        		try {
+    	        	//delegate call to service
+    				String result = this.service.getMoviesWithRatings();
+    				
+    				//return 404 if actor or movie not in db
+    				if(result.equals("404")) {
+    					Utils.sendString(request, "404 Not Found\n", 404);
+    				} else if(result.equals("-1")) {
+    					//return 500 Server Error if crash in computeBaconPath()
+    					Utils.sendString(request, "500 Internal Server Error\n", 500);
+    				} else {
+    	    			//send response
+    					response = result;
+    	    			Utils.sendString(request, response, 200);
+    				}				
+    	    	} catch(IOException e) {
+    	    		//improperly formatted JSON - throw 400 bad request
+    				Utils.sendString(request, "400 Bad Request\n", 400);
+    	    	}
+        	} else if(pathList.size() == 4){
+        		//endpoint: /api/v1/ratings/{0-5}
+        		try {
+    	        	int range = Integer.parseInt(pathList.get(3));
+        			
+    	        	//if range out of bounds throw 404
+    	        	if(range < 0 || range > 5) {
+    	        		throw new IOException();
+    	        	}
+    	        	
+        			//delegate call to service
+    				String result = this.service.getMoviesWithRatingsInRange(range);
+    				
+    				//return 404 if actor or movie not in DB
+    				if(result.equals("404")) {
+    					Utils.sendString(request, "404 Not Found\n", 404);
+    				} else if(result.equals("-1")) {
+    					//return 500 Server Error if crash in computeBaconPath()
+    					Utils.sendString(request, "500 Internal Server Error\n", 500);
+    				} else {
+    	    			//send response
+    					response = result;
+    	    			Utils.sendString(request, response, 200);
+    				}				
+    	    	} catch(IOException e) {
+    	    		//improperly formatted JSON - throw 400 bad request
+    				Utils.sendString(request, "400 Bad Request\n", 400);
+    	    	}
+        	}
+        	      	
+        } else if(pathList.get(2).equals("actorsByMovieRatings")){
+        	
+        	try {
+	        	//delegate call to service
+				String result = this.service.getActorsByAverageMovieRatings();
+				
+				//return 404 if actor or movie not in DB
+				if(result.equals("404")) {
+					Utils.sendString(request, "404 Not Found\n", 404);
+				} else if(result.equals("-1")) {
+					//return 500 Server Error if crash in computeBaconPath()
+					Utils.sendString(request, "500 Internal Server Error\n", 500);
+				} else {
+	    			//send response
+					response = result;
+	    			Utils.sendString(request, response, 200);
+				}				
+	    	} catch(IOException e) {
+	    		//improperly formatted JSON - throw 400 bad request
+				Utils.sendString(request, "400 Bad Request\n", 400);
+	    	}
+        	
         } else {
         	//invalid path - throw 400 bad request
         	Utils.sendString(request, "400 Bad Request\n", 400);

@@ -8,6 +8,7 @@ public class Actor {
 	private String id;
 	private String name;
 	private List<String> movies;
+	private double averageRating;
 	
 	public Actor() {
 		
@@ -40,7 +41,15 @@ public class Actor {
 	public void setName(String name) {
 		this.name = name;
 	}
-
+	
+	public double getAverageRating() {
+		return this.averageRating;
+	}
+	
+	public void setAverageRating(double averageRating) {
+		this.averageRating = averageRating;
+	}
+	
 	public List<String> getMovies() {
 		return this.movies;
 	}
@@ -51,39 +60,72 @@ public class Actor {
 
 	@Override
 	public String toString() {
-		return "Actor [id=" + id + ", name=" + name + ", movies=" + movies + "]";
+		if(this.getMovies() != null) {
+			return "Actor [id=" + id + ", name=" + name + ", movies=" + movies + "]";
+		}
+		return "Actor [id=" + id + ", name=" + name + ", averageRating=" + averageRating + "]";
 	}
 	
 	public String toJsonString() {
 		String result = "";
 		
-		result += "{";
-		
-		result += "\"";
-		result += "actorId";
-		result += "\": ";	
-				
-		result += "\"";
-		result += this.id;
-		result += "\", ";	
-		
-		result += "\"";
-		result += "name";
-		result += "\": ";	
-				
-		result += "\"";
-		result += this.name;
-		result += "\", ";	
-		
-		result += "\"";
-		result += "movies";
-		result += "\": ";	
-				
-		result += "";
-		result += this.movies;
-		result += "";	
-		
-		result += "}";
+		if(this.getMovies() != null) {
+			result += "{";
+			
+			result += "\"";
+			result += "actorId";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.id;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "name";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.name;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "movies";
+			result += "\": ";	
+					
+			result += "";
+			result += this.movies;
+			result += "";	
+			
+			result += "}";
+		} else {
+			result += "{";
+			
+			result += "\"";
+			result += "actorId";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.id;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "name";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.name;
+			result += "\", ";	
+			
+			result += "\"";
+			result += "averageRating";
+			result += "\": ";	
+					
+			result += "\"";
+			result += this.averageRating;
+			result += "\"";	
+			
+			result += "}";
+		}
 		
 		return result;
 	}
