@@ -2,22 +2,22 @@ package ca.yorku.eecs.entity;
 
 public class ActedIn {
 	
-	private String hasRelationship;
+	private boolean hasRelationship;
 	private String actorId;
 	private String movieId;
 	
-	public ActedIn(String hasRelationship, String actorId, String movieId) {
+	public ActedIn(boolean hasRelationship, String actorId, String movieId) {
 		this.hasRelationship = hasRelationship;
 		this.actorId = actorId;
 		this.movieId = movieId;
 	}
 
-	public String getHasRelationship() {
+	public boolean getHasRelationship() {
 		return hasRelationship;
 	}
 
 
-	public void setHasRelationship(String hasRelationship) {
+	public void setHasRelationship(boolean hasRelationship) {
 		this.hasRelationship = hasRelationship;
 	}
 

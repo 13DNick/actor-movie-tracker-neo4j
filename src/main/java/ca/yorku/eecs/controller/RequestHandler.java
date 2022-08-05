@@ -206,22 +206,20 @@ public class RequestHandler implements HttpHandler{
     			//delegate call to service
     			String result = this.service.hasRelationship(movieId, actorId);
     			
-    			//return 404 if actor or movie not in DB
     			if(result.equals("not found")) {
+    				//return 404 if actor or movie not in DB
     				Utils.sendString(request, "404 Not Found\n", 404);
-    			}
-    			
-    			//return 500 Server Error if crash in hasRelationship()
-    			if(result.equals("-1")) {
+    			} else if(result.equals("-1")) {
+    				//return 500 Server Error if crash in hasRelationship()
     				Utils.sendString(request, "500 Internal Server Error\n", 500);
+    			} else {
+					//convert to JSON string
+					ActedIn hasRelationshipResult = new ActedIn(Boolean.parseBoolean(result), actorId, movieId);
+					response = new JSONObject(hasRelationshipResult).toString();
+					
+					//send response
+					Utils.sendString(request, response, 200);
     			}
-    			
-    			//convert to JSON string
-    			ActedIn hasRelationshipResult = new ActedIn(result, actorId, movieId);
-    			response = new JSONObject(hasRelationshipResult).toString();
-    			
-    			//send response
-    			Utils.sendString(request, response, 200);
         	} catch(JSONException e) {
         		//improperly formatted JSON - throw 400 bad request
     			Utils.sendString(request, "400 Bad Request\n", 400);

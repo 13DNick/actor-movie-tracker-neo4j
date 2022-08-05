@@ -412,7 +412,7 @@ public class Service {
 	}
 	
 	//return "true" if relationship found or "false" if not found
-	//return "not found" if actor or movie not in db
+	//return "not found" if actor or movie not in DB
 	public String hasRelationship(String movieId, String actorId) {
 		
 		String result = "false";

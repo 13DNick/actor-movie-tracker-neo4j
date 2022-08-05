@@ -6,14 +6,6 @@ import com.sun.net.httpserver.HttpServer;
 
 import ca.yorku.eecs.controller.RequestHandler;
 
-import static org.neo4j.driver.v1.Values.parameters;
-import org.neo4j.driver.v1.AuthTokens;
-import org.neo4j.driver.v1.Driver;
-import org.neo4j.driver.v1.GraphDatabase;
-import org.neo4j.driver.v1.StatementResult;
-import org.neo4j.driver.v1.Session;
-import org.neo4j.driver.v1.Transaction;
-
 public class App 
 {
     static int PORT = 8080;
@@ -25,7 +17,8 @@ public class App
     	RequestHandler requestHandler = new RequestHandler();
     	
     	server.createContext("/api/v1", requestHandler::handle);
-        server.start();
+        
+    	server.start();
         System.out.printf("Server started on port %d...\n", PORT);
     }
 }
