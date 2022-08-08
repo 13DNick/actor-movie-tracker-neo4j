@@ -181,7 +181,7 @@ public class Service {
 	
 	//return a list of all movies in the database 
 	//ordered from highest to lowest rating
-	//excluding movies with rating set to -1.0
+	//0.0 <= movie.rating <= 5.0 to be included in result list
 	public String getMoviesWithRatings() {
 		try (Session session = driver.session()){
 			
@@ -231,7 +231,7 @@ public class Service {
 		}
 	}
 	
-	//compute bacon number
+	
 	public String computeBaconNumber(String actorId) {
 		BaconNumber bn;
 		
@@ -268,7 +268,6 @@ public class Service {
 			session.close();
 			return bnObj.toString();
 		} catch(Exception e) {
-			e.printStackTrace();
 			return "-1";
 		}
 	}
@@ -311,12 +310,11 @@ public class Service {
 				session.close();
 				return bnObj.toString();
 			} catch(Exception e) {
-				e.printStackTrace();
 				return "-1";
 			}
 	}
 	
-	
+	//get the shortest path between given actorId to Kevin Bacon
 	public Path getShortestPath(String actorId, Session session) throws Exception{
 		session = driver.session();
 		Transaction tx = session.beginTransaction();
@@ -352,7 +350,7 @@ public class Service {
 			}
 			tx.close();
 			
-			//write to db
+			//write to DB
 			session.writeTransaction(tx2 -> tx2.run("CREATE (a: actor {id: $actorId, Name: $name})", parameters("actorId", actorId, "name", name)));
 			session.close();
 			return "200";	
@@ -374,7 +372,7 @@ public class Service {
 			}
 			tx.close();
 			
-			//write to db
+			//write to DB
 			session.writeTransaction(tx2 -> tx2.run("CREATE (m: movie {id: $movieId, Name: $name, rating: $rating})", parameters("movieId", movieId, "name", name, "rating", rating)));
 			session.close();
 			return "200";	
@@ -389,17 +387,17 @@ public class Service {
 		
 		//check if relationship already exists
 		if(this.hasRelationship(movieId, actorId).equals("true")){
-			//signal to throw 400
+			//relationship already exists
 			return "400";
 		} else if(this.hasRelationship(movieId, actorId).equals("not found")) {
-			//signal to throw 404
+			//actorId or movieId not found
 			return "404";
 		}
 		
 		//relationship doesn't exist - add it
 		try(Session session = driver.session()){
 			
-			//write to db
+			//write to DB
 			StatementResult result = session.writeTransaction(tx -> tx.run("MATCH (a: actor), (m: movie) WHERE a.id=$actorId AND m.id=$movieId" 
 					+ " CREATE (a)-[r:ACTED_IN]->(m) RETURN type(r)", parameters("actorId", actorId, "movieId", movieId)));
 			session.close();
@@ -468,7 +466,7 @@ public class Service {
 			session.close();
 			return result;
 		} catch(Exception e) {
-			//signal handler that error occured
+			//signal handler that error occurred
 			return "-1";
 		}
 		
@@ -484,17 +482,17 @@ public class Service {
 			
 			String f = "";
 			
-			//return json string of actor if a result exists
+			//return JSON string of actor if a result exists
 			if(doesExist(result)) {
 				Record record = result.next();
 				
-				//populate pojo with fetched data
+				//populate POJO with fetched data
 				Actor actor = new Actor();
 				actor.setId(record.get(0).get("id").asString());
 				actor.setName(record.get(0).get("Name").asString());
 				actor.setMovies(this.getMovies(id));
 				
-				//convert pojo to JSON string
+				//convert POJO to JSON string
 				JSONObject jsonActor = new JSONObject(actor.toJsonString());
 				f = jsonActor.toString();
 			} else {
@@ -505,7 +503,7 @@ public class Service {
 			session.close();
 			return f;
 		} catch (Exception e) {
-			//signal request handler error occured
+			//signal request handler error occurred
 			return "-1";
 		}
 	}
@@ -520,17 +518,17 @@ public class Service {
 			
 			String f = "";
 			
-			//return json string of actor if a result exists
+			//return JSON string of actor if a result exists
 			if(doesExist(result)) {
 				Record record = result.next();
 				
-				//populate pojo with fetched data
+				//populate POJO with fetched data
 				Movie movie = new Movie();
 				movie.setId(record.get(0).get("id").asString());
 				movie.setName(record.get(0).get("Name").asString());
 				movie.setActors(this.getActors(id));				
 				
-				//convert pojo to JSON string
+				//convert POJO to JSON string
 				JSONObject jsonMovie = new JSONObject(movie.toJsonString());
 				f = jsonMovie.toString();
 			} else {
@@ -541,7 +539,7 @@ public class Service {
 			session.close();
 			return f;
 		} catch (Exception e) {
-			//signal request handler error occured
+			//signal request handler error occurred
 			return "-1";
 		}
 	}

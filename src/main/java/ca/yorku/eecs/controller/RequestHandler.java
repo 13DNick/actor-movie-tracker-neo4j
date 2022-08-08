@@ -16,11 +16,11 @@ import ca.yorku.eecs.entity.ActedIn;
 import ca.yorku.eecs.service.Service;
 
 public class RequestHandler implements HttpHandler{
-	//service layer for db communication and business logic
+	//service layer for DB communication and business logic
 	private Service service;
 	
 	public RequestHandler() {
-		//instantiate db connection in Service constructor
+		//instantiate DB connection in Service constructor
 		this.service = new Service();
 	}
 	
@@ -34,7 +34,7 @@ public class RequestHandler implements HttpHandler{
             } else if(request.getRequestMethod().equals("PUT")){
             	handlePut(request);
             } else {
-            	Utils.sendString(request, "Unimplemented method\n", 501);
+            	Utils.sendString(request, "Unimplemented method\n", 400);
             }
         } catch (Exception e) {
         	e.printStackTrace();
@@ -235,7 +235,7 @@ public class RequestHandler implements HttpHandler{
     			//delegate call to service
     			String result = this.service.computeBaconNumber(actorId);
     			
-    			//return 404 if actor or movie not in db
+    			//return 404 if actor or movie not in DB
     			if(result.equals("404")) {
     				Utils.sendString(request, "404 Not Found\n", 404);
     			} else if(result.equals("-1")) {
@@ -261,7 +261,7 @@ public class RequestHandler implements HttpHandler{
     			//delegate call to service
     			String result = this.service.computeBaconPath(actorId);
     			
-    			//return 404 if actor or movie not in db
+    			//return 404 if actor or movie not in DB
     			if(result.equals("404")) {
     				Utils.sendString(request, "404 Not Found\n", 404);
     			} else if(result.equals("-1")) {
@@ -330,7 +330,7 @@ public class RequestHandler implements HttpHandler{
         	}
         	      	
         } else if(pathList.get(2).equals("actorsByMovieRatings")){
-        	
+        	//endpoint: /api/v1/actorsByMovieRatings
         	try {
 	        	//delegate call to service
 				String result = this.service.getActorsByAverageMovieRatings();

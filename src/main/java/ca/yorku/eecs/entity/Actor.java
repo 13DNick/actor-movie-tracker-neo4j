@@ -120,9 +120,9 @@ public class Actor {
 			result += "averageRating";
 			result += "\": ";	
 					
-			result += "\"";
+			result += "";
 			result += this.averageRating;
-			result += "\"";	
+			result += "";	
 			
 			result += "}";
 		}
